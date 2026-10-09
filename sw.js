@@ -1,5 +1,5 @@
 /* Simple Caddie service worker: cache-first, everything local. Bump VERSION when index.html changes. */
-const VERSION = "simple-caddie-v3-2026-10-09";
+const VERSION = "simple-caddie-v3.2-2026-10-09";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {

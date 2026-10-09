@@ -2083,6 +2083,45 @@ function shareText(title, text) {
   }
   showCopyBox(text);
 }
+
+/* ---- Share this app / install help ---- */
+const SHARE_APP_TEXT = "Here's a free golf caddie app: https://jsliney.github.io/simple-caddie/ \nAndroid: open the link in Chrome, tap the \u22ee menu (top right), then 'Install app' or 'Add to Home screen.'\niPhone: open it in Safari, tap Share, then 'Add to Home Screen.'\nAfter that, open it from the new icon. It runs full screen like a normal app, with no browser bar. Works offline; your data stays on your phone. First open walks you through setting up your clubs.";
+const INSTALL_HINT_KEY = "simple-caddie-install-hint-dismissed";
+let deferredInstall = null;
+function isStandalone() {
+  try { if (window.matchMedia && matchMedia("(display-mode: standalone)").matches) return true; } catch (e) {}
+  return navigator.standalone === true;
+}
+function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
+function installHintDismissed() { try { return localStorage.getItem(INSTALL_HINT_KEY) === "1"; } catch (e) { return false; } }
+function installStepsHtml() {
+  return `<ol class="plain">
+    <li class="small"><strong>Android:</strong> open the link in Chrome, tap the \u22ee menu (top right), then \u201cInstall app\u201d or \u201cAdd to Home screen.\u201d</li>
+    <li class="small"><strong>iPhone:</strong> open it in Safari, tap Share, then \u201cAdd to Home Screen.\u201d</li>
+    <li class="small">After that, open it from the new icon. It runs full screen like a normal app, with no browser bar. Works offline; your data stays on your phone.</li></ol>`;
+}
+function installBanner() {
+  if (isStandalone() || installHintDismissed()) return "";
+  const body = deferredInstall
+    ? `<p class="small" style="margin:4px 0 8px">Put Simple Caddie on your home screen. Runs full screen and offline.</p><button class="btn" data-act="install-now">Install</button>`
+    : isIOS()
+      ? `<p class="small" style="margin:4px 0 0">In Safari, tap Share, then \u201cAdd to Home Screen.\u201d Then open it from the new icon.</p>`
+      : `<p class="small" style="margin:4px 0 0">In Chrome, tap the \u22ee menu (top right), then \u201cInstall app\u201d or \u201cAdd to Home screen.\u201d</p>`;
+  return `<div class="tip" id="install-hint"><strong>Install on your phone</strong>${body}
+    <div class="row" style="margin-top:8px"><button class="ghost" data-go="install">How to install</button><button class="ghost" data-act="install-dismiss">Hide</button></div></div>`;
+}
+function install() {
+  return `
+    ${topBar("Install on your phone", "home")}
+    <h2>Install on your phone.</h2>
+    <div class="card">${installStepsHtml()}
+      ${isStandalone() ? `<p class="small">You're already running the installed app.</p>` : deferredInstall ? `<button class="btn wide" data-act="install-now">Install</button>` : ""}
+    </div>
+    <button class="btn secondary wide" style="margin-top:12px" data-act="share-app">Share this app</button>
+  `;
+}
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; try { render(); } catch (err) {} });
+window.addEventListener("appinstalled", () => { deferredInstall = null; try { render(); } catch (err) {} });
 function showCopyBox(text) {
   ui.copyText = text;
   render();
@@ -2330,6 +2369,7 @@ function intro() {
       <p class="small">No handicap. No subscription. No account. No GPS. Nothing leaves this phone unless you tap Share.</p>
       <p class="small">Distances are marked <span class="src guess">guess</span>, <span class="src mine">mine</span> (you typed it), or <span class="src range">range</span>. Yours beat guesses.</p>
     </div>
+    <details><summary>Install on your phone</summary>${installStepsHtml()}<button class="ghost" data-go="install">Open install help</button></details>
     <details><summary>What's new in v3</summary><ul class="plain">${WHATS_NEW.map(w => `<li class="small">${esc(w)}</li>`).join("")}</ul></details>
     <button class="btn wide" style="margin-top:12px" data-act="seen-intro">Got it</button>
   `;
@@ -2414,6 +2454,7 @@ function home() {
     ${flashHtml()}
     ${live && lt.holes ? `<div class="tip"><strong>Round in progress</strong><p class="small" style="margin:4px 0 0">Hole ${live.hole} · ${lt.strokes} strokes through ${lt.holes}</p></div>` : ""}
     ${whatsNewCard()}
+    ${installBanner()}
     <div class="stack">
       <button class="job door" data-go="card"><strong>Caddie</strong><span>On the course. One club, tee or no tee, one sentence.</span></button>
       <button class="job door" data-go="pro"><strong>Practice</strong><span>Range or living room. Plan built from your rounds.</span></button>
@@ -2427,9 +2468,11 @@ function home() {
       <button class="ghost" data-go="trends">Trends</button>
       <button class="ghost" data-go="friend">Help a friend</button>
       <button class="ghost" data-go="intro">Instructions</button>
+      <button class="ghost" data-go="install">Install on your phone</button>
     </div>
     <p class="small" style="margin-top:16px">${data.rangeSessions.reduce((n, s) => n + (s.total || 0), 0)} range reps · ${data.shots.length} course shots · ${data.rounds.length} rounds${last && last.score ? " · last score " + esc(last.score) : ""}.</p>
     ${backup()}
+    <button class="btn secondary wide" style="margin-top:8px" data-act="share-app">Share this app</button>
     <p class="small">Version ${esc(APP_VERSION)}</p>
   `;
 }
@@ -3078,6 +3121,7 @@ function friend() {
     <p class="muted">For a buddy who plays even less than you. Saved apart from your clubs. Nothing is sent unless you tap Share.</p>
     <div class="row">${list}<button class="chip" data-act="friend-new">+ New friend</button></div>
     ${body ? `<div style="margin-top:12px">${body}</div>` : `<p class="small" style="margin-top:12px">Tap “+ New friend” to make a card.</p>`}
+    <button class="btn secondary wide" style="margin-top:12px" data-act="share-app">Share this app</button>
   `;
 }
 
@@ -3480,7 +3524,7 @@ function go(screen) {
 const SCREENS = {
   fresh, intro, home, card, ask, read, round, courses, course, pro, miss, bag, log, trends,
   tips, drills, checks, chipaid, scorecard, mybag, todaycheck, wear, clubedit, rangenums,
-  learn, how, friend, focus, athome, cheatsheet
+  learn, how, friend, focus, athome, cheatsheet, install
 };
 function render() {
   const el = document.getElementById("app");
@@ -3863,6 +3907,9 @@ document.getElementById("app").addEventListener("click", (e) => {
       if (ui.friend.yards) f.pick.line = ui.friend.yards + " yds: " + f.pick.line;
       saveFriends(); render(); break;
     }
+    case "share-app": shareText("Simple Caddie", SHARE_APP_TEXT); break;
+    case "install-dismiss": try { localStorage.setItem(INSTALL_HINT_KEY, "1"); } catch (e) {} render(); break;
+    case "install-now": if (deferredInstall) { const ev = deferredInstall; ev.prompt(); (ev.userChoice || Promise.resolve()).finally(() => { deferredInstall = null; render(); }); } break;
     case "friend-share": captureFriend(); { const f = activeFriend(); if (f) shareText("Simple Caddie card", friendCardText(f)); } break;
     case "friend-del": {
       const f = activeFriend(); if (!f || !confirm("Remove " + (f.name || "this friend") + "?")) break;
