@@ -1,7 +1,7 @@
-# Simple Caddie
+# Bogey Buddy
 
-An offline golf caddie web app (PWA).
+*Shank You Very Much.*
 
-Live: https://jsliney.github.io/simple-caddie/
+A free, offline pocket caddie PWA (no account, no ads). Live: https://jsliney.github.io/simple-caddie/
 
-Open in Chrome on your phone, then menu > Add to Home screen.
+One index.html plus sw.js and manifest. Data stays in localStorage; Simple Caddie data (simple-caddie-v1, friends) is migrated automatically and a raw copy is kept under bogey-buddy-old-data-backup.
