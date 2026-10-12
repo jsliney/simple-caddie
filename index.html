@@ -187,7 +187,7 @@ const SCORECARDS = {
     src: "golftroy.com Sylvan Glen scorecard"
   }
 };
-const APP_VERSION = "1.3.0 · 2026-10-11";
+const APP_VERSION = "1.3.1 · 2026-10-11";
 const APP_URL = "https://jsliney.github.io/simple-caddie/";
 const K = "bogey-buddy-v1", K_OLD = "simple-caddie-v1", K_FR = "simple-caddie-friends-v1";
 const K_BAK = "bogey-buddy-old-data-backup", K_PHOTO = "bogey-buddy-bag-photo", K_RESET = "bogey-buddy-before-reset";
@@ -662,8 +662,8 @@ const PATH = [
   ] }
 ];
 /* v1.3 trim: keep the big three up front; drop drills that repeat another picture. */
-const DROPPED = ["p-tech", "p-ladder", "c-one", "c-club", "s-align", "s-ball"];
-const ORDER = { putt: ["p-lag", "p-line", "p-gate", "p-three", "p-seq"] };
+const DROPPED = ["p-ladder", "c-one", "c-club", "s-align", "s-ball"];
+const ORDER = { putt: ["p-lag", "p-tech", "p-line", "p-gate", "p-three", "p-seq"] };
 PATH.forEach(g => { g.drills = g.drills.filter(d => !DROPPED.includes(d.id)); if (ORDER[g.id]) g.drills.sort((a, b) => ORDER[g.id].indexOf(a.id) - ORDER[g.id].indexOf(b.id)); });
 const ALL_DRILLS = PATH.flatMap(p => p.drills);
 function drillAvg(id) { const a = D.drills[id]; if (!a || !a.length) return null; const l = a.slice(-3); return l.reduce((s, x) => s + x, 0) / l.length; }
