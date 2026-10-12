@@ -43,11 +43,21 @@ label{display:block;font-weight:600;margin:8px 0 4px}
 .brand{display:flex;align-items:center;gap:10px}
 .brand svg{width:48px;height:48px;flex:none}
 .tag{font-style:italic;color:var(--mut);margin:0;font-size:16px}
-.big4{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;flex:1;max-height:520px}
-.big4 button{flex-direction:column;font-size:21px;min-height:130px;border-width:3px;border-radius:20px}
-.big4 button svg{width:64px;height:64px}
-.big4 button small{font-weight:500;font-size:14px;color:inherit;opacity:.85}
-.big4 .play{background:var(--g);color:#fff}
+.big4{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px;margin-top:12px;flex:1;max-height:560px}
+.big4 button{flex-direction:column;justify-content:flex-end;align-items:flex-start;text-align:left;font-size:24px;min-height:150px;border:3px solid var(--g);border-radius:20px;color:#fff;padding:12px;background:var(--g) center/cover no-repeat;position:relative;overflow:hidden;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6)}
+.big4 button::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,25,14,.15) 0%,rgba(5,25,14,.55) 45%,rgba(5,25,14,.9) 100%)}
+.big4 button span,.big4 button small{position:relative}
+.big4 button small{font-weight:600;font-size:15px;opacity:1}
+.big4 .play{border-color:#facc15}
+.hero{position:relative;height:110px;border-radius:16px;background:var(--g) center/cover no-repeat;margin:4px 0 10px;overflow:hidden;display:flex;align-items:flex-end;padding:10px 14px}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,25,14,0) 30%,rgba(5,25,14,.8) 100%)}
+.hero b{position:relative;color:#fff;font-size:24px;text-shadow:0 1px 3px #000}
+.badge{display:block;width:180px;height:180px;margin:6px auto 2px}
+.miss{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.miss button{min-height:52px;padding:4px;font-size:15px;line-height:1.1}
+.miss .good{background:var(--lg)}
+.fix{background:#fffbeb;border:3px solid #ca8a04;border-radius:16px;padding:12px 14px;margin:10px 0}
+.fix h3{margin:0 0 6px}
+.shotlog{font-size:14px;color:var(--mut)}
 .yd{display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0}
 .yd input{width:130px;font-size:44px;font-weight:800;text-align:center;min-height:64px}
 .yd button{font-size:22px;min-width:64px;min-height:64px}
@@ -167,7 +177,7 @@ const SCORECARDS = {
     src: "golftroy.com Sylvan Glen scorecard"
   }
 };
-const APP_VERSION = "1.0.0 · 2026-10-11";
+const APP_VERSION = "1.1.0 · 2026-10-11";
 const APP_URL = "https://jsliney.github.io/simple-caddie/";
 const K = "bogey-buddy-v1", K_OLD = "simple-caddie-v1", K_FR = "simple-caddie-friends-v1";
 const K_BAK = "bogey-buddy-old-data-backup", K_PHOTO = "bogey-buddy-bag-photo", K_RESET = "bogey-buddy-before-reset";
@@ -229,7 +239,7 @@ function makeClubs(swing, bagIds) {
 function blank() {
   return { v: 1, setupDone: false, name: "", swing: "beginner", clubs: makeClubs("beginner", DEFAULT_BAG),
     courses: COURSES.filter(c => !c.extra).map(c => ({ id: c.id, preset: true, tee: c.tee })), activeCourseId: "",
-    rounds: [], card: null, todayCheck: null, drills: {}, fit: {}, bagList: "", migratedFrom: "", legacyFriends: [] };
+    rounds: [], card: null, miss: null, todayCheck: null, drills: {}, fit: {}, bagList: "", migratedFrom: "", legacyFriends: [] };
 }
 function normalize(d) {
   const b = blank();
@@ -242,6 +252,7 @@ function normalize(d) {
   ["courses","rounds","legacyFriends"].forEach(k => { if (!Array.isArray(o[k])) o[k] = []; });
   if (!o.drills || typeof o.drills !== "object") o.drills = {};
   if (!o.fit || typeof o.fit !== "object") o.fit = {};
+  if (!o.miss || typeof o.miss !== "object") o.miss = null;
   return o;
 }
 /* Simple Caddie v1-v3 -> Bogey Buddy. Keeps bag, distances, brands, courses (and tees), rounds and the live card.
@@ -384,10 +395,13 @@ function pickByYards(target, list) {
   list = byCarry(list.filter(playable));
   if (!list.length) return null;
   if (target == null) { return list.find(c => c.id === "7I") || list.find(c => c.kind === "iron") || list[Math.floor(list.length / 2)]; }
-  const c = list.find(x => carry(x) >= target - 2);
-  return c ? { ...c, ok: true } : { ...list[list.length - 1], short: true };
+  let i = list.findIndex(x => carry(x) >= target - 2);
+  if (i < 0) return { ...list[list.length - 1], short: true };
+  const adj = missAdj();
+  if (adj) { const j = Math.max(0, Math.min(list.length - 1, i + adj)); if (j !== i) return { ...list[j], ok: true, adj }; }
+  return { ...list[i], ok: true };
 }
-const firstOf = (ids) => { for (const id of ids) { const c = inBag().find(x => x.id === id && (playable(x) || x.kind === "putter")); if (c) return c; } return null; };
+const firstOf = (ids) => { for (const id of ids) { const c = pickBag().find(x => x.id === id && (playable(x) || x.kind === "putter")); if (c) return c; } return null; };
 const IRON_ORDER = ["4I","5I","6I","7I","8I","9I","PW","AW","52","54","56","SW","58"];
 const odds = { safe: "Safe: almost always works.", ok: "Pretty safe: works most of the time.", risky: "Risky: maybe 1 in 4." };
 
@@ -399,7 +413,7 @@ const TILES = [
   { id: "sand", label: "Sand" }, { id: "tree", label: "Behind a tree" }, { id: "green", label: "Near the green" }
 ];
 function answer(tile, yards, ladder) {
-  const bag = inBag(), y = yards;
+  const M = D.miss = normMiss(D.miss), bag = pickBag(), y = yards;
   const r = { tee: false, steps: [], pic: "", aim: "Aim at the center of the green.", why: "", odds: "", note: "", plays: null, club: null, rule: 3 };
   const noWood = c => !isWoodish(c);
   const upToHybrid = c => playable(c) && noWood(c);
@@ -408,6 +422,7 @@ function answer(tile, yards, ladder) {
     case "teeD": {
       r.tee = true; r.rule = 6; r.aim = "Aim at the widest part of the fairway.";
       const dr = bag.find(c => c.kind === "driver" && c.yards > 0);
+      if (!dr && M.safety) { r.club = firstOf(["HY","5W","5I","6I","7I"]) || pickByYards(null, bag); r.note = "Safety mode: hybrid off the tee."; r.steps = ["Tee it low, just off the grass.", "Ball a little forward of middle.", "Easy swing. In play beats long."]; r.pic = stance(1.5, { note: "ball a bit forward" }); r.odds = odds.safe; break; }
       if (y != null && dr && carry(dr) > y + 25) { r.club = pickByYards(y, bag); r.note = "Driver is too much club here."; if (r.club && r.club.kind !== "driver") r.aim = "Aim at the center of the green."; }
       else r.club = dr || firstOf(["3W","5W","HY"]) || pickByYards(null, bag);
       r.steps = ["Tee it high: half the ball above the club top.", "Ball off your front heel, feet a bit wider.", "Smooth swing, hold the finish."];
@@ -491,6 +506,9 @@ function answer(tile, yards, ladder) {
       break;
     }
   }
+  if (r.club && M.swaps[r.club.id]) { const to = inBag().find(c => c.id === M.swaps[r.club.id]); if (to) { r.note = `Swapped for today: ${SHORT[to.id]} instead of ${SHORT[r.club.id]}.`; r.club = { ...to, short: r.club.short }; } }
+  if (M.safety && tile === "green" && r.ladder !== "putt") r.note = "Safety mode: on the fringe with smooth grass? Putt it.";
+  if (r.club && r.club.adj && !r.note) r.note = r.club.adj > 0 ? "Playing one more club (your shots are coming up short)." : "Playing one less club (your shots are going long).";
   if (r.club && r.club.kind === "putter" && tile !== "green") r.note = "Only a putter in the bag for this one. Add clubs in My bag.";
   if (!r.club) { r.club = bag.find(c => c.kind === "putter") || null; if (!r.club) r.note = "No clubs in the bag yet. Add some in My bag."; else r.note = "No club in your bag fits this. Add clubs in My bag."; }
   return r;
@@ -577,6 +595,8 @@ const ICON = {
   bag: S("0 0 64 64", `<rect x="18" y="20" width="26" height="40" rx="6" fill="none" stroke="currentColor" stroke-width="4"/><line x1="24" y1="20" x2="20" y2="4" stroke="currentColor" stroke-width="3"/><line x1="31" y1="20" x2="31" y2="2" stroke="currentColor" stroke-width="3"/><line x1="38" y1="20" x2="44" y2="6" stroke="currentColor" stroke-width="3"/><line x1="44" y1="28" x2="52" y2="40" stroke="currentColor" stroke-width="3"/>`, "")
 };
 const topBar = (title, back) => `<div class="top"><button class="back ghost" data-a="go" data-r="${back || "home"}" aria-label="Back">‹ Back</button><h1 style="font-size:22px">${esc(title)}</h1><span style="width:48px"></span></div>` + (storageMsg ? `<div class="msg" role="alert">${esc(storageMsg)}</div>` : "");
+const hero = (img, t) => `<div class="hero" style="background-image:url(img/${img}.webp)" role="img" aria-label="${esc(t)}"><b>${esc(t)}</b></div>`;
+const BADGE = `<img class="badge" src="img/badge.webp" width="180" height="180" alt="Bogey Buddy badge">`;
 const watch = q => `<p class="mut">Want to see it? <a class="watch" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener">Watch more on YouTube ↗</a></p>`;
 
 function vHome() {
@@ -585,10 +605,10 @@ function vHome() {
   ${storageMsg ? `<div class="msg">${esc(storageMsg)}</div>` : ""}${bootNote ? `<div class="msg">${esc(bootNote)}</div>` : ""}${ui.flash ? `<div class="ok">${esc(ui.flash)}</div>` : ""}
   ${hi ? `<p class="mut">${hi} Simple swing, good walk, fun day.</p>` : ""}
   <div class="big4">
-   <button class="play" data-a="go" data-r="caddie">${ICON.caddie}Caddie<small>on the course</small></button>
-   <button data-a="go" data-r="warm">${ICON.warm}Warm up<small>before you tee off</small></button>
-   <button data-a="go" data-r="practice">${ICON.practice}Practice<small>home & range</small></button>
-   <button data-a="go" data-r="bag">${ICON.bag}My bag<small>clubs & checks</small></button>
+   <button class="play" style="background-image:url(img/caddie.webp)" data-a="go" data-r="caddie"><span>Caddie</span><small>on the course</small></button>
+   <button style="background-image:url(img/warmup.webp)" data-a="go" data-r="warm"><span>Warm up</span><small>before you tee off</small></button>
+   <button style="background-image:url(img/practice.webp)" data-a="go" data-r="practice"><span>Practice</span><small>home & range</small></button>
+   <button style="background-image:url(img/bag.webp)" data-a="go" data-r="bag"><span>My bag</span><small>clubs & checks</small></button>
   </div>${installHint()}</div>`;
 }
 function isIOS() { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); }
@@ -603,7 +623,7 @@ function installHint() {
 function vSetup() {
   const s = ui.setupStep;
   let body = "";
-  if (s === 0) body = `<h2>Welcome! What should we call you?</h2><label for="nm">Name (optional)</label><input id="nm" class="w100" value="${esc(D.name)}" data-f="name" autocomplete="given-name">
+  if (s === 0) body = `${BADGE}<p class="tag" style="text-align:center;font-size:19px">Shank You Very Much</p><h2>Welcome! What should we call you?</h2><label for="nm">Name (optional)</label><input id="nm" class="w100" value="${esc(D.name)}" data-f="name" autocomplete="given-name">
     <h2>How do you swing?</h2><p class="mut">Sets starting distances. You can change any number later.</p>
     <div class="row">${[["beginner","Beginner"],["average","Average"],["strong","Strong"]].map(([k, t]) => `<button class="grow ${D.swing === k ? "on" : ""}" data-a="swing" data-k="${k}">${t}</button>`).join("")}</div>
     <p class="mut">Beginner: 7-iron ~110 yd · Average: ~145 · Strong: ~165</p>`;
@@ -629,7 +649,7 @@ function ydBlock() {
 }
 function todayBanner() { const r = ratioToday(); if (r === 1) return ""; return `<p class="ok">Today: ${r < 1 ? "playing short, numbers adjusted down" : "playing long, numbers adjusted up"} (${Math.round((r - 1) * 100)}%).</p>`; }
 function vCaddie() {
-  return topBar("Caddie") + `<p class="mut" style="text-align:center;margin:0">Yards to the middle of the green</p>${ydBlock()}${todayBanner()}
+  return topBar("Caddie") + hero("caddie", "On the course") + vFix() + `<p class="mut" style="text-align:center;margin:0">Yards to the middle of the green</p>${ydBlock()}${todayBanner()}
   <div class="tiles">${TILES.map(t => `<button data-a="tile" data-t="${t.id}">${tileSvg(t.id)}<span>${esc(t.label)}</span></button>`).join("")}</div>
   <div class="row" style="margin-top:12px"><button class="grow" data-a="go" data-r="rules">📋 Rules</button><button class="grow" data-a="go" data-r="routine">Routine</button></div>
   ${vTodayCheck()}${vCard()}`;
@@ -689,7 +709,94 @@ function vAnswer(tile) {
     <p><b>🎯 ${esc(r.aim)}</b></p>${r.odds ? `<p>${esc(r.odds)}</p>` : ""}${r.why ? `<p class="mut">Why: ${esc(r.why)}</p>` : ""}</div>
     <p class="line">${esc(LINES[(t.id.length + (ui.yd || 0)) % LINES.length])}</p>
     <p class="mut">Rule ${r.rule + 1}: ${esc(RULES[r.rule])}</p>
+    ${c && c.kind !== "putter" ? vHowd(c) : ""}
     <button class="pri w100" data-a="go" data-r="caddie">Next shot</button>`;
+}
+/* ---- miss patterns (per round, offline, in D.miss) ---- */
+const RESULTS = [["good","Good"],["short","Short"],["long","Long"],["right","Right"],["left","Left"],["contact","Bad contact"],["topped","Topped"]];
+const RNAME = Object.fromEntries(RESULTS);
+const FIX = {
+  short: ["Coming up short", ["Take one more club.", "Swing easy."], "Picks now add one club."],
+  long: ["Going long", ["Take one less club.", "Same smooth swing."], "Picks now take one less club."],
+  right: ["Missing right", ["Aim a bit left.", "Slightly stronger grip.", "Finish the turn: belt buckle to the target."], ""],
+  left: ["Missing left", ["Aim a bit right.", "Lighter grip pressure.", "Hold the finish."], ""],
+  contact: ["Fat or thin", ["Ball a touch back.", "Weight on the front foot.", "Smaller, smoother swing."], ""],
+  topped: ["Topping it", ["Stay down.", "Chest over the ball through impact."], ""]
+};
+const SAFETY_TXT = "Safety mode: hybrid off the tee, putt from the fringe, out of trouble in one. Bogey is a win today.";
+function normMiss(m) {
+  const b = () => ({ date: today(), shots: [], swaps: {}, declined: {}, adj: 0, fix: "", safety: false, safetyOff: false });
+  if (!m || typeof m !== "object" || m.date !== today()) return b();
+  const o = Object.assign(b(), m);
+  o.shots = Array.isArray(o.shots) ? o.shots.filter(x => x && RNAME[x.r]).slice(-150) : [];
+  ["swaps","declined"].forEach(k => { if (!o[k] || typeof o[k] !== "object") o[k] = {}; });
+  o.adj = [-1, 0, 1].includes(o.adj) ? o.adj : 0;
+  if (!FIX[o.fix]) o.fix = "";
+  o.safety = !!o.safety; o.safetyOff = !!o.safetyOff;
+  return o;   /* a new day is a new round */
+}
+function newRound() { D.miss = normMiss(null); ui.missFb = null; }
+function missAdj() { D.miss = normMiss(D.miss); return D.miss.adj; }
+const SWAP_FOR = { DR: ["5W","HY"], "3W": ["HY"], "5W": ["HY"], "4I": ["HY"], "5I": ["HY"] };
+const SAFE_OUT = ["DR","3W","5W","4I","5I"];
+function pickBag() {
+  const m = D.miss = normMiss(D.miss);
+  let b = inBag();
+  if (m.safety) { const s = b.filter(c => !SAFE_OUT.includes(c.id)); if (s.some(playable)) b = s; }
+  return b;
+}
+/* The caddie decides. Pure: shots = [{c, r}] oldest first. */
+function missEval(shots) {
+  const last = shots[shots.length - 1], l5 = shots.slice(-5), l6 = shots.slice(-6);
+  const isMiss = x => x.r !== "good";
+  const out = { kind: "", fix: "", club: "", streak: false, struggling: false };
+  if (!last) return out;
+  if (last.r === "good") { out.kind = "good"; out.streak = shots.length >= 3 && shots.slice(-3).every(x => x.r === "good"); return out; }
+  if (l6.length >= 6 && l6.filter(isMiss).length >= 5) out.struggling = true;
+  const cnt = {}; l5.forEach(x => { if (isMiss(x)) cnt[x.r] = (cnt[x.r] || 0) + 1; });
+  const all = {}; shots.forEach(x => { all[x.r] = (all[x.r] || 0) + 1; });
+  let cands = Object.keys(cnt).filter(k => cnt[k] >= 3);
+  ["short","long"].forEach(k => { if (all[k] >= 3 && !cands.includes(k)) cands.push(k); });
+  if (cands.length) { cands.sort((a, b) => ((b === last.r) - (a === last.r)) || ((cnt[b] || 0) - (cnt[a] || 0))); out.fix = cands[0]; }
+  const per = shots.filter(x => x.c === last.c && isMiss(x)).length;
+  if (per >= 3 && SWAP_FOR[last.c]) out.club = last.c;
+  out.kind = out.struggling ? "struggling" : out.fix ? "fix" : "shake";
+  return out;
+}
+function swapTarget(id) { const b = inBag(); const t = (SWAP_FOR[id] || []).find(x => x !== id && b.some(c => c.id === x && playable(c))); return t || ""; }
+function recordShot(club, res) {
+  const m = D.miss = normMiss(D.miss);
+  m.shots.push({ c: club, r: res }); m.shots = m.shots.slice(-150);
+  const ev = missEval(m.shots);
+  if (ev.fix === "short") m.adj = 1; else if (ev.fix === "long") m.adj = -1;
+  if (ev.fix) m.fix = ev.fix;
+  if (ev.struggling && !m.safetyOff) m.safety = true;
+  if (ev.club && (m.swaps[ev.club] || m.declined[ev.club] || !swapTarget(ev.club))) ev.club = "";
+  ui.missFb = ev;
+}
+function fixCard(k) { const f = FIX[k]; return `<div class="fix" role="status"><h3>🔧 Pattern: ${esc(f[0])}</h3><ol class="steps">${f[1].map(x => `<li>${esc(x)}</li>`).join("")}</ol>${f[2] ? `<p class="mut">${esc(f[2])}</p>` : ""}<button data-a="fixdone">Got it</button></div>`; }
+function vFix() {
+  const m = D.miss = normMiss(D.miss); let h = "";
+  if (m.safety) h += `<div class="fix"><b>${esc(SAFETY_TXT)}</b><p class="mut">Picks favor the safest clubs.</p><button data-a="safety" data-v="off">Turn safety mode off</button></div>`;
+  if (m.fix) h += fixCard(m.fix);
+  const sw = Object.keys(m.swaps);
+  if (sw.length) h += `<div class="ok">${sw.map(k => `${esc(SHORT[m.swaps[k]])} instead of ${esc(SHORT[k])} today <button data-a="unswap" data-id="${k}">Undo</button>`).join("<br>")}</div>`;
+  return h;
+}
+function vHowd(c) {
+  const m = D.miss = normMiss(D.miss), fb = ui.missFb;
+  let h = `<div class="card" id="howd"><h3 style="margin-top:0">How'd it go? <span class="mut">(optional)</span></h3><div class="miss">${RESULTS.map(([k, t]) => `<button class="${k === "good" ? "good" : ""}" data-a="shot" data-c="${c.id}" data-k="${k}">${t}</button>`).join("")}</div>`;
+  if (fb) {
+    if (fb.kind === "good") h += fb.streak ? `<div class="ok" role="status">Stick with it, don't add anything.</div>` : `<div class="ok" role="status">Nice. Same routine.</div>`;
+    else if (fb.kind === "struggling") h += m.safety ? `<div class="fix" role="status"><b>${esc(SAFETY_TXT)}</b><p><button data-a="safety" data-v="off">Turn safety mode off</button></p></div>` : `<div class="msg" role="status">Shake it off. Same routine, next shot.</div>`;
+    else if (fb.kind === "fix") h += fixCard(fb.fix);
+    else h += `<div class="msg" role="status">Shake it off. Same routine, next shot.</div>`;
+    if (fb.club) { const t = swapTarget(fb.club); h += `<div class="fix"><b>Your ${esc(SHORT[fb.club])} isn't behaving today.</b><p>Use the ${esc(SHORT[t])} instead for the rest of the round?</p><div class="row"><button class="pri grow" data-a="swap" data-id="${fb.club}" data-t="${t}">Swap to ${esc(SHORT[t])}</button><button class="grow" data-a="noswap" data-id="${fb.club}">Keep it</button></div></div>`; }
+  }
+  const l = m.shots.slice(-6);
+  if (l.length) h += `<p class="shotlog">Last shots: ${l.map(x => esc(SHORT[x.c] || x.c) + " " + esc(RNAME[x.r])).join(" · ")}</p>`;
+  h += `<button class="ghost" data-a="newround">New round (clear shots)</button></div>`;
+  return h;
 }
 function vRules() { return topBar("Caddie rules", "caddie") + `<div class="card"><ol class="steps">${RULES.map(r => `<li style="margin:10px 0;font-size:19px">${esc(r)}</li>`).join("")}</ol></div>`; }
 function routineCard() { return `<div class="card"><h3>Same routine, every shot (~20 seconds)</h3><ol class="steps"><li><b>Behind</b> the ball. Pick the club.</li><li><b>Target:</b> one small spot.</li><li><b>One rehearsal</b> swing.</li><li><b>Go:</b> step in and swing within ~8 seconds.</li></ol><p class="mut">Source: Golf Digest, "8-second rule" and Hank Haney on pre-shot routines.</p></div>`; }
@@ -698,7 +805,7 @@ function vRoutine() { return topBar("Routine", "caddie") + routineCard(); }
 /* ---- warm up ---- */
 function vWarm() {
   const st = warmSteps(ui.warm, ui.balls);
-  return topBar("Warm up") + `<p>How long do you have?</p><div class="row">${[5, 10, 20].map(m => `<button class="grow ${ui.warm === m ? "on" : ""}" data-a="warm" data-m="${m}">${m} min</button>`).join("")}</div>
+  return topBar("Warm up") + hero("warmup", "Before you tee off") + `<p>How long do you have?</p><div class="row">${[5, 10, 20].map(m => `<button class="grow ${ui.warm === m ? "on" : ""}" data-a="warm" data-m="${m}">${m} min</button>`).join("")}</div>
   <p class="mut">Ball count (optional)</p><div class="row">${["", "20", "40", "60"].map(b => `<button class="grow ${ui.balls === b ? "on" : ""}" data-a="balls" data-b="${b}">${b || "No range"}</button>`).join("")}</div>
   <div class="card"><ol class="steps">${st.map(([h, t]) => `<li><b>${h}:</b> ${esc(t)}</li>`).join("")}</ol></div>
   <details><summary>First-tee routine</summary>${routineCard()}<p>On the first tee: take the club you hit straightest, tee it, one smooth swing. Any ball in play is a good start.</p></details>
@@ -708,7 +815,7 @@ function vWarm() {
 /* ---- practice ---- */
 function vPractice() {
   const pick = pickToday();
-  return topBar("Practice") + `<button class="pri w100" data-a="go" data-r="drill/${pick.id}">Practice today (10 min): ${esc(pick.title)}</button>
+  return topBar("Practice") + hero("practice", "Home & range") + `<button class="pri w100" data-a="go" data-r="drill/${pick.id}">Practice today (10 min): ${esc(pick.title)}</button>
   <details><summary>Why short game first?</summary><p>For casual golfers, most strokes happen within 100 yards of the hole. Spend practice time on <b>3-footers</b>, <b>lag putts</b> and <b>10-30 yard chips</b>. That's where bogeys come back.</p><p class="mut">Source: Dave Pelz, "Dave Pelz's Short Game Bible" (1999): about 60-65% of strokes are within 100 yards.</p></details>
   ${PATH.map(p => `<h2>${esc(p.title)}</h2>${p.drills.map(d => { const a = drillAvg(d.id); return `<button class="w100" style="justify-content:space-between;margin:4px 0" data-a="go" data-r="drill/${d.id}"><span>${esc(d.title)}</span><span class="mut">${a == null ? "" : Math.round(a) + "/10"}</span></button>`; }).join("")}`).join("")}
   <details><summary>Season opener: 2 weeks at home</summary><ol class="steps"><li><b>Days 1-3:</b> 10 min stretch + 20 slow swings to a held finish (no ball).</li><li><b>Days 4-6:</b> putting on the carpet: coin gate + 3-footers.</li><li><b>Days 7-9:</b> wiffle-ball chips into a laundry basket.</li><li><b>Days 10-12:</b> alignment with two clubs, half swings with foam balls.</li><li><b>Day 13:</b> a range bucket with the Range plan.</li><li><b>Day 14:</b> rest. Go play and smile.</li></ol><p class="mut">10-15 minutes a day is plenty. Skip days freely.</p></details>
@@ -774,7 +881,7 @@ function vBag() {
   const f = D.fit;
   const inp = (k, ph, w) => `<input type="${k === "heightIn" ? "text" : "number"}" inputmode="${k === "heightIn" ? "text" : "decimal"}" data-fit="${k}" value="${esc(f[k] || "")}" placeholder="${ph}" style="width:${w || 120}px" aria-label="${ph}">`;
   const pick = (k, opts) => `<div class="row">${opts.map(([v, t]) => `<button class="grow ${f[k] === v ? "on" : ""}" data-a="fitset" data-k="${k}" data-v="${v}">${t}</button>`).join("")}</div>`;
-  return topBar("My bag") + (ui.bagMsg ? `<div class="msg" role="status">${esc(ui.bagMsg)}</div>` : "") +
+  return topBar("My bag") + hero("bag", "Clubs & checks") + (ui.bagMsg ? `<div class="msg" role="status">${esc(ui.bagMsg)}</div>` : "") +
    `<p class="mut">Carry yards. "guess" = from a chart, "mine" = you typed it, "range" = from a range or simulator.</p>
    <div class="card">${rows || "<p>No clubs with distances. Tap Edit clubs below.</p>"}</div>
    <details><summary>Edit clubs in bag</summary>${clubTapList()}</details>
@@ -809,7 +916,7 @@ function vGear() {
     <details><summary>Or paste backup text</summary><textarea id="imptxt" placeholder="Paste backup here"></textarea><button data-a="importtxt">Restore pasted backup</button></details></details>
    <details><summary>Your setup</summary><label for="nm2">Name</label><input id="nm2" class="w100" data-f="name" value="${esc(D.name)}"><h3>Home courses</h3>${courseTapList()}${D.courses.filter(c => c.preset && SCORECARDS[c.id]).map(c => `<label>${esc(courseName(c))} tees</label><select data-tee="${c.id}">${Object.keys(SCORECARDS[c.id].tees).map(t => `<option ${c.tee === t ? "selected" : ""}>${esc(t)}</option>`).join("")}</select>`).join("")}<p><button data-a="rerun">Run first-open setup again</button></p></details>
    <details><summary>Reset</summary>${ui.confirmReset ? `<div class="msg">Start over? A copy of your data is kept on this phone, and you can export a backup first.</div><div class="row"><button class="grow" data-a="resetno">Cancel</button><button class="grow pri" data-a="resetyes">Yes, start over</button></div>` : `<button class="w100" data-a="reset">Start over…</button>`}</details>
-   <details><summary>About</summary><p><b>Bogey Buddy</b> ${APP_VERSION}. <i>Shank You Very Much.</i></p><p>Free, offline, no account, no ads, no affiliate links. Your data stays on this phone.</p><p class="mut">Built for Jeff and the crew. Distances: Shot Scope amateur averages; beginner chart via thehomegolfer.com. Routine: Golf Digest. Wedges: Titleist. Putter: MyGolfSpy. Short game: Dave Pelz.</p>${D.legacyFriends.length ? `<p class="mut">${D.legacyFriends.length} friend profile(s) from the old app are kept in your data and backup.</p>` : ""}</details>`;
+   <details><summary>About</summary>${BADGE}<p class="tag" style="text-align:center">Shank You Very Much</p><p><b>Bogey Buddy</b> ${APP_VERSION}. <i>Shank You Very Much.</i></p><p>Free, offline, no account, no ads, no affiliate links. Your data stays on this phone.</p><p class="mut">Built for Jeff and the crew. Distances: Shot Scope amateur averages; beginner chart via thehomegolfer.com. Routine: Golf Digest. Wedges: Titleist. Putter: MyGolfSpy. Short game: Dave Pelz.</p>${D.legacyFriends.length ? `<p class="mut">${D.legacyFriends.length} friend profile(s) from the old app are kept in your data and backup.</p>` : ""}</details>`;
 }
 
 /* ---------------- router + events ---------------- */
@@ -853,8 +960,15 @@ document.addEventListener("click", e => {
     case "addcourse": { const nm = (ui.newCourse || "").trim(); if (nm) { D.courses.push({ id: "c" + Date.now(), preset: false, name: nm.slice(0, 60) }); ui.newCourse = ""; } break; }
     case "yd": { const cur = ui.yd == null ? (Number(ds.d) > 0 ? 95 : 105) : ui.yd; setYd(cur + Number(ds.d)); break; }
     case "ydset": setYd(ds.v); break;
-    case "tile": { const inp = document.getElementById("yd"); if (inp && String(inp.value) !== String(ui.yd == null ? "" : ui.yd)) setYd(inp.value); ui.ladder = null; go("answer/" + ds.t); return; }
+    case "tile": { ui.missFb = null; const inp = document.getElementById("yd"); if (inp && String(inp.value) !== String(ui.yd == null ? "" : ui.yd)) setYd(inp.value); ui.ladder = null; go("answer/" + ds.t); return; }
     case "ladder": ui.ladder = ds.k; break;
+    case "shot": recordShot(ds.c, ds.k); break;
+    case "fixdone": D.miss.fix = ""; if (ui.missFb && ui.missFb.kind === "fix") ui.missFb = null; break;
+    case "swap": D.miss.swaps[ds.id] = ds.t; if (ui.missFb) ui.missFb.club = ""; break;
+    case "noswap": D.miss.declined[ds.id] = 1; if (ui.missFb) ui.missFb.club = ""; break;
+    case "unswap": delete D.miss.swaps[ds.id]; D.miss.declined[ds.id] = 1; break;
+    case "safety": D.miss.safety = false; D.miss.safetyOff = true; break;
+    case "newround": newRound(); break;
     case "tc": {
       const id = document.getElementById("tcclub").value, v = Number(document.getElementById("tcyd").value);
       const c = D.clubs.find(x => x.id === id); ui.tcOpen = true;
@@ -867,14 +981,14 @@ document.addEventListener("click", e => {
       break;
     }
     case "tcclear": D.todayCheck = null; ui.tcMsg = ""; ui.tcOpen = true; break;
-    case "cardstart": { const cid = document.getElementById("cardc").value; D.card = { date: today(), courseId: cid, hole: 1, holes: Array.from({ length: 18 }, (_, i) => ({ n: i + 1, strokes: 0, putts: 0, out: "" })) }; ui.cardOpen = true; break; }
+    case "cardstart": { const cid = document.getElementById("cardc").value; newRound(); D.card = { date: today(), courseId: cid, hole: 1, holes: Array.from({ length: 18 }, (_, i) => ({ n: i + 1, strokes: 0, putts: 0, out: "" })) }; ui.cardOpen = true; break; }
     case "hole": D.card.hole = Math.max(1, Math.min(18, D.card.hole + Number(ds.d))); break;
     case "sc": { const h = D.card.holes[D.card.hole - 1]; h[ds.k] = Math.max(0, Math.min(15, (h[ds.k] || 0) + Number(ds.d))); break; }
     case "out": D.card.holes[D.card.hole - 1].out = ds.v; break;
     case "cardend": {
       const c = D.card, co = D.courses.find(x => x.id === c.courseId), played = c.holes.filter(h => h.strokes);
       if (played.length) D.rounds.unshift({ date: c.date, courseId: c.courseId, course: courseName(co), tee: co && co.tee || "", score: played.reduce((a, h) => a + h.strokes, 0), putts: played.reduce((a, h) => a + h.putts, 0), holes: played.map(h => ({ n: h.n, strokes: h.strokes, putts: h.putts, out: h.out })) });
-      D.card = null; ui.cardOpen = true; ui.flash = played.length ? "Round saved. Nice walk." : ""; break;
+      D.card = null; newRound(); ui.cardOpen = true; ui.flash = played.length ? "Round saved. Nice walk." : ""; break;
     }
     case "warm": ui.warm = Number(ds.m); break;
     case "balls": ui.balls = ds.b; break;
@@ -958,6 +1072,7 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.type === "updated" && hadController) toast(`New version ready. <button data-a="reload" onclick="location.reload()">Refresh</button> <button onclick="toast('')" aria-label="Dismiss">✕</button>`); });
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController) toast(`Bogey Buddy updated. <button onclick="location.reload()">Refresh</button> <button onclick="toast('')" aria-label="Dismiss">✕</button>`); });
 }
+window.BB = { missEval, normMiss };
 render();
 </script>
 </body>
