@@ -187,7 +187,7 @@ const SCORECARDS = {
     src: "golftroy.com Sylvan Glen scorecard"
   }
 };
-const APP_VERSION = "1.2.0 · 2026-10-11";
+const APP_VERSION = "1.3.0 · 2026-10-11";
 const APP_URL = "https://jsliney.github.io/simple-caddie/";
 const K = "bogey-buddy-v1", K_OLD = "simple-caddie-v1", K_FR = "simple-caddie-friends-v1";
 const K_BAK = "bogey-buddy-old-data-backup", K_PHOTO = "bogey-buddy-bag-photo", K_RESET = "bogey-buddy-before-reset";
@@ -507,19 +507,21 @@ function answer(tile, yards, ladder) {
       const putter = bag.find(c => c.kind === "putter");
       const chip = firstOf(["8I","7I","9I","PW"]);
       const pitch = firstOf(["SW","56","58","54","52","AW","PW"]);
-      let mode = ladder || (y != null && y > 30 ? "pitch" : (putter ? "putt" : "chip"));
+      let mode = ladder || (putter && (y == null || y <= 10) ? "putt" : "chip");
       if (mode === "putt" && !putter) mode = "chip";
       if (mode === "chip" && !chip) mode = pitch ? "pitch" : "putt";
       if (mode === "pitch" && !pitch) mode = chip ? "chip" : "putt";
       r.ladder = mode;
-      if (mode === "putt") { r.aim = "Pick a spot on your line. Roll it just past the hole."; r.club = putter || null; r.steps = ["Smooth grass and no big bump? Putt it.", "Eyes over the ball, rock the shoulders.", "Roll it to finish just past the hole."]; r.pic = figure("putt"); r.odds = odds.safe; }
-      if (mode === "chip") { r.club = chip; r.steps = ["Ball back, weight on your front foot.", "Putting stroke, wrists quiet.", "Land it just on the green, let it roll."]; r.pic = figure("chip"); r.odds = odds.safe; }
-      if (mode === "pitch") { r.club = pitch; r.steps = ["Ball in the middle, weight forward.", "Half swing back, same through.", "Land it on the green. Never flop."]; r.pic = figure("chip"); r.odds = odds.ok; }
+      if (mode === "putt") { r.aim = "Pick a spot on your line. Roll it just past the hole."; r.club = putter || null; r.cue = "Speed first: roll it just past."; r.steps = ["Smooth grass and no big bump? Putt it.", "Eyes over the ball, rock the shoulders.", "Roll it to finish just past the hole."]; r.pic = figure("putt"); r.odds = odds.safe; }
+      if (mode === "chip") { r.club = chip; r.cue = "Putting stroke, quiet wrists."; r.steps = ["Ball back, weight on your front foot.", "Putting stroke, wrists quiet.", "Land it just on the green, let it roll."]; r.pic = bumpPic; r.odds = odds.safe; r.aim = "Land it just on the green: 1/3 air, 2/3 roll."; }
+      if (mode === "pitch") { r.club = pitch; r.cue = "Half back, half through."; r.steps = ["Ball in the middle, weight forward.", "Half swing back, same through.", "Carry the trouble, middle of the green. Never flop."]; r.pic = figure("chip"); r.odds = odds.ok; }
       if (!r.club && putter) r.club = putter;
+      if (y != null && y > 40 && mode !== "pitch") r.note = "Long chip. Only pitch if you must carry trouble.";
       if (y != null && y > 60) r.note = "That's a long way for 'near the green'. A Fairway tile may fit better.";
       break;
     }
   }
+  if (r.club && ["4I","5I"].includes(r.club.id) && !M.swaps.HY) { const hy = pickBag().find(c => c.id === "HY" && playable(c)); if (hy) { r.club = { ...hy, short: r.club.short }; r.cue = "Grip down an inch, smooth swing."; if (!r.note) r.note = "Hybrid over long iron: easier to hit."; } }
   if (r.club && M.swaps[r.club.id]) { const to = inBag().find(c => c.id === M.swaps[r.club.id]); if (to) { r.note = `Swapped for today: ${SHORT[to.id]} instead of ${SHORT[r.club.id]}.`; r.club = { ...to, short: r.club.short }; } }
   if (M.safety && tile === "green" && r.ladder !== "putt") r.note = "Safety mode: on the fringe with smooth grass? Putt it.";
   if (r.club && r.club.adj && !r.note) r.note = r.club.adj > 0 ? "Playing one more club (your shots are coming up short)." : "Playing one less club (your shots are going long).";
@@ -626,16 +628,22 @@ const diPics = () => `<p class="ok" style="margin:0 0 8px">Do this to raise your
  <div class="cmprow">Key cues</div><div class="cmp">${SET3.map(o => `<div>${o.cues.map(c => `<p>• ${esc(c)}</p>`).join("")}</div>`).join("")}</div>
  <div class="tech" style="margin-top:10px"><figure>${rails({ ball: 154, label: "inside lead heel", wide: 1 })}<figcaption><b>Driver from above.</b> Feet, hips, shoulders parallel to the line.</figcaption></figure><figure>${rails({ ball: 120, label: "middle" })}<figcaption><b>Iron from above.</b> Same rails. Ball in the middle.</figcaption></figure></div>`;
 
+const aimPic = S("0 0 240 130", `<rect width="240" height="130" rx="10" fill="#4ade80"/><line x1="40" y1="50" x2="232" y2="50" stroke="#fff" stroke-width="2.5" stroke-dasharray="7 5"/><circle cx="226" cy="50" r="6" fill="#0b0f0c"/><line x1="226" y1="50" x2="226" y2="22" stroke="#0b0f0c" stroke-width="2"/><path d="M226 22 l12 4 l-12 4z" fill="#dc2626"/><rect x="50" y="36" width="7" height="28" rx="2" fill="#374151"/><circle cx="64" cy="50" r="6" fill="#fff" stroke="#0b0f0c" stroke-width="2"/><circle cx="104" cy="50" r="4" fill="#7c2d12"/><text x="104" y="40" font-size="11" text-anchor="middle" font-weight="700">① spot</text><text x="84" y="68" font-size="10" text-anchor="middle">1 foot</text><text x="40" y="30" font-size="11" text-anchor="middle" font-weight="700">② face</text><line x1="30" y1="104" x2="110" y2="104" stroke="#fde047" stroke-width="3"/><ellipse cx="44" cy="104" rx="12" ry="7" fill="#374151"/><ellipse cx="90" cy="104" rx="12" ry="7" fill="#374151"/><text x="150" y="108" font-size="11" font-weight="700">③ feet parallel</text>`, "Aim: spot, face, feet");
+const bumpPic = S("0 0 240 110", `<rect width="240" height="110" rx="10" fill="#dcfce7"/><rect x="0" y="80" width="80" height="30" fill="#86efac"/><rect x="80" y="80" width="160" height="30" fill="#4ade80"/><circle cx="20" cy="76" r="4.5" fill="#fff" stroke="#0b0f0c"/><path d="M24 74 Q52 44 86 79" fill="none" stroke="#14532d" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="88" y1="78" x2="214" y2="78" stroke="#14532d" stroke-width="2.5"/><circle cx="218" cy="80" r="5" fill="#0b0f0c"/><line x1="218" y1="80" x2="218" y2="50" stroke="#0b0f0c" stroke-width="2"/><path d="M218 50 l12 4 l-12 4z" fill="#dc2626"/><text x="56" y="30" font-size="13" font-weight="700" text-anchor="middle">1/3 air</text><text x="150" y="68" font-size="13" font-weight="700" text-anchor="middle">2/3 roll</text><text x="86" y="100" font-size="10" text-anchor="middle">land just on</text>`, "Land it 1/3, roll 2/3");
+const lagPic = S("0 0 240 110", `<rect width="240" height="110" rx="10" fill="#4ade80"/><circle cx="200" cy="55" r="34" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="5 4"/><circle cx="200" cy="55" r="6" fill="#0b0f0c"/><text x="200" y="104" font-size="11" text-anchor="middle" font-weight="700">3-ft circle</text>${[[20,"short"],[30,"medium"],[40,"long"]].map(([w, t], i) => `<line x1="${40 - w / 2}" y1="${24 + i * 26}" x2="${40 + w / 2}" y2="${24 + i * 26}" stroke="#14532d" stroke-width="5" stroke-linecap="round"/><text x="70" y="${28 + i * 26}" font-size="11">${t}</text><circle cx="${180 + i * 12}" cy="${40 + i * 12}" r="4" fill="#fff" stroke="#0b0f0c"/>`).join("")}`, "Lag ladder");
+
 const PATH = [
   { id: "putt", title: "1. Putting school", drills: [
+    { id: "p-lag", title: "Speed first: lag ladder (at home)", pic: () => lagPic, steps: ["Short, medium, long stroke. Same tempo.", "Stop each ball inside a 3-ft circle.", "Speed first. Line second."], reps: "3 balls per length, count inside the circle", watch: "lag putting drill at home" },
     { id: "p-seq", title: "Putting step by step", pic: seqPics("putt"), steps: ["Go through a to e slowly.", "Then 10 putts from 6 feet."], reps: "10 putts from 6 feet, count makes", watch: "putting stroke step by step" },
     { id: "p-tech", title: "Putting technique (5 pictures)", pic: techPics, steps: ["Do the 5 pictures in order, slowly.", "Then 10 putts from 6 feet."], reps: "10 putts from 6 feet, count makes", watch: "putting fundamentals setup pendulum stroke" },
-    { id: "p-line", title: "Lining up", pic: () => linePic, steps: ["Stand behind the ball and pick a spot a foot ahead on your line.", "Turn the ball so the logo (or a drawn line) points at the spot.", "Set the putter face square to that line, eyes right over the ball.", "Putt over the spot, not at the hole."], reps: "10 putts from 6 feet", watch: "how to line up a putt" },
+    { id: "p-line", title: "Line-up routine", pic: () => linePic, steps: ["Stand behind the ball.", "Pick a spot a foot ahead on the line.", "Set the face square to the spot.", "Look at the hole twice. Go."], reps: "10 putts from 6 feet", watch: "how to line up a putt" },
     { id: "p-gate", title: "At home: tee or coin gate", pic: () => gatePic, steps: ["On the carpet: two tees (or coins) just wider than the putter head.", "Coin a foot ahead of the ball.", "Stroke through the gate, touch nothing, roll over the coin.", "Shoulders rock, wrists quiet."], reps: "10 strokes, count clean ones", watch: "putting gate drill straight stroke" },
     { id: "p-ladder", title: "Distance ladder", pic: () => ladderPic, steps: ["Put lines (tees or string) at 10, 20 and 30 feet.", "Putt 3 balls to each line, trying to stop just past it.", "Same tempo; make the stroke longer for longer putts, not faster.", "Good = within a putter length."], reps: "9 balls (3 per line), count good ones out of 10 tries", watch: "lag putting distance control drill" },
     { id: "p-three", title: "3-footer circle", pic: () => circlePic, steps: ["Put balls in a circle 3 feet from the hole.", "Same routine every ball.", "Firm enough to hit the back of the cup.", "Finish on a made one."], reps: "10 balls, count makes", watch: "3 foot putting circle drill" }
   ] },
   { id: "chip", title: "2. Chipping school", drills: [
+    { id: "c-bump", title: "Low bump and run", pic: () => bumpPic, steps: ["7-9 iron. Land it just on the green.", "1/3 air, 2/3 roll.", "Putting stroke. No flops."], reps: "10 chips, count inside 6 feet", watch: "bump and run chip beginners" },
     { id: "c-seq", title: "Chipping step by step", pic: seqPics("chip"), steps: ["Ball back of center, weight lead side.", "Hands ahead, quiet wrists.", "Putting-style stroke."], reps: "10 chips, count solid ones", watch: "basic chipping technique step by step" },
     { id: "c-one", title: "One motion", pic: () => figure("chip"), steps: ["Narrow stance, ball back, weight on the front foot.", "Hands a little ahead of the ball.", "Putting-style stroke: shoulders rock, wrists quiet.", "Same motion every chip. The club changes the distance."], reps: "10 chips, count solid ones", watch: "simple chipping motion beginners" },
     { id: "c-club", title: "Club by distance", pic: () => chipClubsPic, steps: ["Long roll (lots of green): 7-iron.", "Medium: pitching wedge.", "Short (little green, or a bump): 52° or sand wedge.", "Same small motion with all three. Pick a landing spot just on the green."], reps: "3 balls with each club, count ones inside 6 feet", watch: "chipping club selection 7 iron PW sand wedge" },
@@ -653,6 +661,10 @@ const PATH = [
     { id: "r-plan", title: "A bucket with a plan", pic: () => railPic, steps: ["Clubs down for alignment first (railroad tracks).", "15 half wedges, then 15 with a 7-iron, then 10 hybrid.", "Last 10: play a hole. Driver, then the club the app picks, then a wedge. Full routine each ball.", "Simulator? Write down the carry numbers and put them in My bag (source: range)."], reps: "50 balls; count good ones in the last 10", watch: "how to practice at the driving range" }
   ] }
 ];
+/* v1.3 trim: keep the big three up front; drop drills that repeat another picture. */
+const DROPPED = ["p-tech", "p-ladder", "c-one", "c-club", "s-align", "s-ball"];
+const ORDER = { putt: ["p-lag", "p-line", "p-gate", "p-three", "p-seq"] };
+PATH.forEach(g => { g.drills = g.drills.filter(d => !DROPPED.includes(d.id)); if (ORDER[g.id]) g.drills.sort((a, b) => ORDER[g.id].indexOf(a.id) - ORDER[g.id].indexOf(b.id)); });
 const ALL_DRILLS = PATH.flatMap(p => p.drills);
 function drillAvg(id) { const a = D.drills[id]; if (!a || !a.length) return null; const l = a.slice(-3); return l.reduce((s, x) => s + x, 0) / l.length; }
 function nextFocus(id, score) {
@@ -745,7 +757,7 @@ function todayBanner() { const r = ratioToday(); if (r === 1) return ""; return 
 function vCaddie() {
   return topBar("Caddie") + hero("caddie", "On the course") + vFix() + `<div class="remind">⛳ ${esc(PUTT_TIP)}</div><p class="mut" style="text-align:center;margin:0">Yards to the middle of the green</p>${ydBlock()}${todayBanner()}
   <div class="tiles">${TILES.map(t => `<button data-a="tile" data-t="${t.id}">${tileSvg(t.id)}<span>${esc(t.label)}</span></button>`).join("")}</div>
-  <div class="row" style="margin-top:12px"><button class="grow" data-a="go" data-r="rules">📋 Rules</button><button class="grow" data-a="go" data-r="routine">Routine</button></div>
+  <div class="row" style="margin-top:12px"><button class="grow" data-a="go" data-r="aim">🎯 Aim</button><button class="grow" data-a="go" data-r="rules">📋 Rules</button><button class="grow" data-a="go" data-r="routine">Routine</button></div>
   ${vTodayCheck()}${vCard()}`;
 }
 function vTodayCheck() {
@@ -790,8 +802,8 @@ function vAnswer(tile) {
   let ydl = "";
   if (ui.yd != null && cy) ydl = `${ui.yd} yd${r.plays && r.plays !== ui.yd ? ` · plays like ${r.plays}` : ""} · your ${esc(SHORT[c.id])} carries ~${cy}`;
   else if (cy) ydl = `Your ${esc(SHORT[c.id])} carries ~${cy}`;
-  const ladder = t.id === "green" ? `<div class="ladder">${[["putt","1. Can you putt it? Putter."],["chip","2. Room to roll? Chip with a 7-9 iron."],["pitch","3. Else pitch with a wedge. Never flop."]].map(([k, s]) => `<div class="${r.ladder === k ? "sel" : ""}">${s}</div>`).join("")}</div>
-     <div class="row">${[["putt","I can putt it"],["chip","Room to roll"],["pitch","No room / bump"]].map(([k, s]) => `<button class="grow ${r.ladder === k ? "on" : ""}" data-a="ladder" data-k="${k}">${s}</button>`).join("")}</div>` : "";
+  const ladder = t.id === "green" ? `<div class="ladder">${[["putt","1. Can you putt it? Putt it."],["chip","2. Else a low chip: 7-9 iron, land it 1/3, roll 2/3."],["pitch","3. Pitch only to carry trouble. Never flop."]].map(([k, s]) => `<div class="${r.ladder === k ? "sel" : ""}">${s}</div>`).join("")}</div>
+     <div class="row">${[["putt","Putt it"],["chip","Low chip"],["pitch","Must carry trouble"]].map(([k, s]) => `<button class="grow ${r.ladder === k ? "on" : ""}" data-a="ladder" data-k="${k}">${s}</button>`).join("")}</div>` : "";
   return topBar(t.label, "caddie") + `<div class="card" style="text-align:center">
     <div class="club" id="bigclub">${big}</div>
     <p class="say" id="say">${esc(sentence(r, t.id))}</p>
@@ -799,10 +811,9 @@ function vAnswer(tile) {
     ${c && c.short ? `<div class="msg">Too far for any club in your bag. Lay up to a comfy distance.</div>` : ""}
     ${ui.ydMsg ? `<div class="msg">${esc(ui.ydMsg)}</div>` : ""}${r.note ? `<div class="msg">${esc(r.note)}</div>` : ""}</div>
     ${ladder}
-    <div class="card"><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><ol class="steps grow">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol><div style="width:42%;flex:none">${r.pic.replace("<svg", '<svg class="pic"')}</div></div>
-    <p><b>🎯 ${esc(r.aim)}</b></p>${r.odds ? `<p>${esc(r.odds)}</p>` : ""}${r.why ? `<p class="mut">Why: ${esc(r.why)}</p>` : ""}</div>
-    <p class="line">${esc(LINES[(t.id.length + (ui.yd || 0)) % LINES.length])}</p>
-    <p class="mut">Rule ${r.rule + 1}: ${esc(RULES[r.rule])}</p>
+    <div class="card"><div class="row" style="flex-wrap:nowrap;align-items:center"><div class="grow"><p class="line" style="margin:0" id="cue">${esc(r.cue || r.steps[r.steps.length - 1] || "")}</p><p style="margin:8px 0 0"><b>🎯 ${esc(r.aim)}</b></p></div><div style="width:42%;flex:none">${r.pic.replace("<svg", '<svg class="pic"')}</div></div>
+    ${r.odds ? `<p class="mut">${esc(r.odds)}</p>` : ""}<div class="row"><button class="grow" data-a="go" data-r="aim">🎯 Aim card</button></div>
+    <details><summary>Setup details</summary><ol class="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>${r.why ? `<p class="mut">Why: ${esc(r.why)}</p>` : ""}<p class="mut">Rule ${r.rule + 1}: ${esc(RULES[r.rule])}</p></details></div>
     ${c && c.kind !== "putter" ? vHowd(c) : ""}
     <button class="pri w100" data-a="go" data-r="caddie">Next shot</button>`;
 }
@@ -923,9 +934,11 @@ function vDrill(id) {
    <ol class="steps">${d.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol><p><b>Reps:</b> ${esc(d.reps)}</p>
    <h3>How did it go? (out of 10)</h3><div class="rate">${[0,1,2,3,4,5,6,7,8,9,10].map(n => `<button class="${last === n ? "on" : ""}" data-a="rate" data-id="${id}" data-n="${n}">${n}</button>`).join("")}</div>
    ${last != null ? `<div class="ok">${esc(nextFocus(id, last))}</div>` : ""}
-   <details><summary>Want more?</summary><p>Same routine on every rep. Quality over count: 10 good reps beat 50 rushed ones. Stop when you get tired.</p>${id === "s-turn" ? "" : `<h3>The four stills</h3>${fourStills()}`}</details>
+   <details><summary>Want more?</summary><p>Same routine on every rep. Quality over count: 10 good reps beat 50 rushed ones. Stop when you get tired.</p></details>
+   ${/^[pcs]-/.test(id) ? `<button class="w100" data-a="go" data-r="aim">🎯 Aim card: spot, face, feet</button>` : ""}
    ${watch(d.watch)}`;
 }
+function vAim() { return topBar("Aim") + `<p class="ok" style="margin:0 0 8px">Do this to raise your odds of a straight shot where you aim.</p><div class="card">${aimPic.replace("<svg", '<svg class="pic"')}</div><ol class="steps"><li>Behind the ball: pick a spot 1 foot ahead on your line.</li><li>Set the clubface square to the spot.</li><li>Then set your feet parallel. Go.</li></ol><button class="pri w100" data-a="back">Back</button>`; }
 /* ---- my bag ---- */
 function fitNum(k) { const v = parseFloat(D.fit[k]); return isFinite(v) && v > 0 ? v : null; }
 function heightIn() { const v = String(D.fit.heightIn || "").trim(); const m = v.match(/^(\d)\s*['’ ]\s*(\d{1,2})/); if (m) return +m[1] * 12 + +m[2]; const n = parseFloat(v); if (!isFinite(n)) return null; return n < 8 ? Math.round(n * 12) : n; }
@@ -1020,7 +1033,7 @@ function render() {
   let r = route();
   if (!D.setupDone && r === "home") { app.innerHTML = vSetup(); return; }
   const [base, arg] = r.split("/");
-  const v = { home: vHome, caddie: vCaddie, rules: vRules, routine: vRoutine, warm: vWarm, practice: vPractice, bag: vBag, gear: vGear, setup: vSetup }[base];
+  const v = { aim: vAim, home: vHome, caddie: vCaddie, rules: vRules, routine: vRoutine, warm: vWarm, practice: vPractice, bag: vBag, gear: vGear, setup: vSetup }[base];
   try { app.innerHTML = base === "answer" ? vAnswer(arg) : base === "drill" ? vDrill(arg) : v ? v() : vHome(); }
   catch (e) { console.error(e); app.innerHTML = `<div class="msg">Something went wrong: ${esc(e.message)}</div><button data-a="go" data-r="home">Home</button>`; }
   ui.flash = "";
@@ -1045,6 +1058,7 @@ document.addEventListener("click", e => {
   const a = t.dataset.a, ds = t.dataset;
   switch (a) {
     case "go": go(ds.r); return;
+    case "back": history.length > 1 ? history.back() : go("caddie"); return;
     case "skip": applyPreset("beginner"); finishSetup(); return;
     case "swing": applyPreset(ds.k); break;
     case "sstep": { const n = ui.setupStep + Number(ds.d); if (n > 2) { finishSetup(); return; } ui.setupStep = Math.max(0, n); break; }
