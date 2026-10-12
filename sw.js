@@ -1,6 +1,6 @@
 /* Bogey Buddy service worker: stale-while-revalidate with a versioned cache.
    Bump VERSION on every release; open pages get an "update ready" toast. */
-const VERSION = "bogey-buddy-v1.1.0-2026-10-11";
+const VERSION = "bogey-buddy-v1.2.0-2026-10-11";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "img/caddie.webp", "img/warmup.webp", "img/practice.webp", "img/bag.webp", "img/badge.webp"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" })))).then(() => self.skipWaiting()));

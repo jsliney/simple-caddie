@@ -57,6 +57,16 @@ label{display:block;font-weight:600;margin:8px 0 4px}
 .miss .good{background:var(--lg)}
 .fix{background:#fffbeb;border:3px solid #ca8a04;border-radius:16px;padding:12px 14px;margin:10px 0}
 .fix h3{margin:0 0 6px}
+.tech{display:grid;grid-template-columns:1fr;gap:10px}
+.tech figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px 10px}
+.tech figcaption{font-size:16px;line-height:1.3;margin-top:4px}.tech figcaption b{color:var(--g)}
+.tech svg.pic{max-width:340px}
+.tech .sm svg{max-width:150px;display:block;margin:0 auto}
+.pend{transform-box:view-box;transform-origin:60px 22px;animation:pend 2.4s ease-in-out infinite alternate}
+@keyframes pend{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+@media (prefers-reduced-motion:reduce){.pend{animation:none}}
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}.cmp h4{margin:6px 0 2px;font-size:15px;color:var(--g)}.cmp svg{width:100%;height:auto}.cmp p{font-size:13px;line-height:1.25;margin:2px 0;text-align:left}.cmprow{font-weight:700;font-size:14px;margin:10px 0 2px;color:var(--mut)}
+.remind{display:flex;gap:8px;align-items:center;background:var(--lg);border:2px solid var(--g2);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:16px;font-weight:600;color:#052e16}
 .shotlog{font-size:14px;color:var(--mut)}
 .yd{display:flex;align-items:center;justify-content:center;gap:8px;margin:6px 0}
 .yd input{width:130px;font-size:44px;font-weight:800;text-align:center;min-height:64px}
@@ -177,7 +187,7 @@ const SCORECARDS = {
     src: "golftroy.com Sylvan Glen scorecard"
   }
 };
-const APP_VERSION = "1.1.0 · 2026-10-11";
+const APP_VERSION = "1.2.0 · 2026-10-11";
 const APP_URL = "https://jsliney.github.io/simple-caddie/";
 const K = "bogey-buddy-v1", K_OLD = "simple-caddie-v1", K_FR = "simple-caddie-friends-v1";
 const K_BAK = "bogey-buddy-old-data-backup", K_PHOTO = "bogey-buddy-bag-photo", K_RESET = "bogey-buddy-before-reset";
@@ -327,6 +337,10 @@ const POSES = {
   impact: { h:[46,21], n:[47,31], s1:[36,35], s2:[60,34], p1:[46,64], p2:[60,64], k1:[40,86], k2:[64,86], f1:[33,108], f2:[67,108], hd:[53,74], ce:[55,107], ball:[56,105] },
   finish: { h:[58,20], n:[57,30], s1:[46,33], s2:[68,35], p1:[48,64], p2:[62,64], k1:[42,88], k2:[64,86], f1:[38,104], f2:[67,108], hd:[74,20], ce:[34,10] },
   putt:   { h:[50,28], n:[50,38], s1:[39,42], s2:[61,42], p1:[44,68], p2:[56,68], k1:[39,88], k2:[61,88], f1:[36,108], f2:[64,108], hd:[50,80], ce:[52,106], ball:[57,105] },
+  puttBack: { h:[50,28], n:[50,38], s1:[38,43], s2:[61,40], p1:[44,68], p2:[56,68], k1:[39,88], k2:[61,88], f1:[36,108], f2:[64,108], hd:[45,80], ce:[38,105], ball:[57,105] },
+  puttThru: { h:[50,28], n:[50,38], s1:[39,40], s2:[62,43], p1:[44,68], p2:[56,68], k1:[39,88], k2:[61,88], f1:[36,108], f2:[64,108], hd:[56,80], ce:[66,104], ball:[84,105] },
+  chipBack: { h:[52,24], n:[52,34], s1:[40,39], s2:[63,36], p1:[46,66], p2:[58,66], k1:[42,87], k2:[60,87], f1:[40,108], f2:[60,108], hd:[47,75], ce:[35,100], ball:[47,105] },
+  chipThru: { h:[52,24], n:[52,34], s1:[42,36], s2:[64,40], p1:[46,66], p2:[58,66], k1:[43,87], k2:[60,87], f1:[40,108], f2:[60,108], hd:[60,74], ce:[72,96], ball:[86,80] },
   chip:   { h:[52,24], n:[52,34], s1:[41,38], s2:[63,38], p1:[46,66], p2:[58,66], k1:[42,87], k2:[60,87], f1:[40,108], f2:[60,108], hd:[55,76], ce:[50,107], ball:[47,105] }
 };
 function figure(name, extra) {
@@ -536,19 +550,99 @@ const railPic = S("0 0 200 100", `<rect width="200" height="100" rx="10" fill="#
 const ballPosPic = S("0 0 220 110", `<rect width="220" height="110" rx="10" fill="#dcfce7"/><ellipse cx="70" cy="85" rx="8" ry="16" fill="#374151"/><ellipse cx="150" cy="85" rx="8" ry="16" fill="#374151"/>${[["Wedge",110],["7-iron",118],["Hybrid",128],["Driver",146]].map(([t, x], i) => `<circle cx="${x}" cy="${20 + i * 14}" r="5" fill="#fff" stroke="#0b0f0c"/><text x="${x - 10}" y="${24 + i * 14}" font-size="11" text-anchor="end">${t}</text>`).join("")}<text x="196" y="104" font-size="11" text-anchor="end">target →</text>`, "Ball position per club");
 const gripPic = S("0 0 200 100", `<rect width="200" height="100" rx="10" fill="#dcfce7"/><rect x="95" y="5" width="10" height="90" fill="#374151"/><ellipse cx="100" cy="38" rx="22" ry="16" fill="#fcd34d" stroke="#92400e"/><circle cx="88" cy="32" r="3" fill="#92400e"/><circle cx="96" cy="30" r="3" fill="#92400e"/><ellipse cx="100" cy="66" rx="20" ry="14" fill="#fde68a" stroke="#92400e"/><text x="150" y="36" font-size="11">see 2 knuckles</text><text x="150" y="68" font-size="11">V's point to</text><text x="150" y="82" font-size="11">trail shoulder</text>`, "Grip");
 
+/* Putting technique step pictures (inline SVG, offline). */
+const PT = {
+  line: S("0 0 240 120", `<rect width="240" height="120" rx="10" fill="#4ade80"/><line x1="70" y1="60" x2="232" y2="60" stroke="#fff" stroke-width="2.5" stroke-dasharray="7 5"/><text x="228" y="52" font-size="11" text-anchor="end" font-weight="700">start line →</text><rect x="54" y="48" width="7" height="24" rx="2" fill="#374151"/><circle cx="68" cy="60" r="6" fill="#fff" stroke="#0b0f0c" stroke-width="2"/><line x1="40" y1="96" x2="104" y2="96" stroke="#14532d" stroke-width="2" stroke-dasharray="4 3"/><ellipse cx="46" cy="96" rx="12" ry="6" fill="#374151"/><ellipse cx="96" cy="96" rx="12" ry="6" fill="#374151"/><line x1="71" y1="90" x2="71" y2="102" stroke="#0b0f0c" stroke-width="1.5"/><text x="71" y="114" font-size="10" text-anchor="middle">center</text><circle cx="66" cy="64" r="3.5" fill="#1d4ed8"/><text x="8" y="20" font-size="11" font-weight="700" fill="#1d4ed8">● eyes over / just inside ball</text><text x="8" y="34" font-size="11" font-weight="700">① face to line  ② feet parallel</text>`, "Line-up from above"),
+  setup: S("0 0 240 130", `<rect width="240" height="130" rx="10" fill="#dcfce7"/><rect x="0" y="118" width="240" height="12" fill="#86efac"/><path d="M96 40 L144 40 L120 92Z" fill="#facc15" opacity=".55"/>` + L([120,34],[120,74],6) + L([96,40],[144,40],5) + L([96,40],[120,92],3.5,"#1f2937") + L([144,40],[120,92],3.5,"#1f2937") + L([120,92],[122,116],2.5,"#6b7280") + L([110,74],[130,74],5) + L([110,74],[104,116],5) + L([130,74],[136,116],5) + `<circle cx="120" cy="22" r="10" fill="#fff" stroke="#0b0f0c" stroke-width="3"/><circle cx="128" cy="116" r="3" fill="#fff" stroke="#0b0f0c"/><text x="160" y="58" font-size="12" font-weight="700">triangle:</text><text x="160" y="72" font-size="12">shoulders</text><text x="160" y="86" font-size="12">+ arms</text><text x="8" y="58" font-size="12">arms hang</text><text x="8" y="72" font-size="12">straight down</text>`, "Setup triangle"),
+  pend: S("0 0 120 130", `<rect width="120" height="130" rx="10" fill="#dcfce7"/><rect x="0" y="118" width="120" height="12" fill="#86efac"/><path d="M28 104 Q60 124 92 104" fill="none" stroke="#14532d" stroke-width="2" stroke-dasharray="4 3"/><circle cx="60" cy="12" r="9" fill="#fff" stroke="#0b0f0c" stroke-width="3"/><g class="pend"><path d="M42 26 L78 26 L60 70Z" fill="#facc15" opacity=".55"/>` + L([42,26],[78,26],5) + L([42,26],[60,70],3.5,"#1f2937") + L([78,26],[60,70],3.5,"#1f2937") + L([60,70],[60,110],2.5,"#6b7280") + `<rect x="55" y="108" width="10" height="5" rx="1" fill="#374151"/></g><circle cx="66" cy="114" r="3" fill="#fff" stroke="#0b0f0c"/>`, "Pendulum stroke"),
+  face: S("0 0 240 110", `<rect width="240" height="110" rx="10" fill="#4ade80"/>` + [["Square ✓",40,0,"#14532d"],["Open ✗",120,-18,"#b91c1c"],["Closed ✗",200,18,"#b91c1c"]].map(([t, x, a, c]) => `<g transform="rotate(${a} ${x} 62)"><rect x="${x - 4}" y="44" width="8" height="36" rx="2" fill="#374151"/><line x1="${x + 6}" y1="62" x2="${x + 34}" y2="62" stroke="${c}" stroke-width="3"/><path d="M${x + 34} 57 l7 5 l-7 5z" fill="${c}"/></g><circle cx="${x + 9}" cy="62" r="4.5" fill="#fff" stroke="#0b0f0c" stroke-width="1.5"/><text x="${x}" y="100" font-size="13" font-weight="700" text-anchor="middle" fill="${c}">${t}</text>`).join("") + `<text x="120" y="18" font-size="11" text-anchor="middle">from above, at impact · target →</text>`, "Square, open, closed face"),
+  len: S("0 0 240 120", `<rect width="240" height="120" rx="10" fill="#dcfce7"/><line x1="100" y1="8" x2="100" y2="110" stroke="#0b0f0c" stroke-width="1" stroke-dasharray="3 3"/>` + [["Short",14,"3 ft",26],["Medium",26,"10 ft",56],["Long",40,"30 ft",88]].map(([t, w, d, y]) => `<text x="8" y="${y + 4}" font-size="12" font-weight="700">${t}</text><line x1="${100 - w}" y1="${y}" x2="${100 + w}" y2="${y}" stroke="#14532d" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="${y}" r="4" fill="#fff" stroke="#0b0f0c"/><text x="232" y="${y + 4}" font-size="12" text-anchor="end">→ ${d}</text>`).join("") + `<text x="100" y="116" font-size="10" text-anchor="middle">back = through</text>`, "Stroke length")
+};
+const TECH = [["line","1. Line-up","Eyes over or just inside the ball. Ball a bit forward of center. Aim the face first, then set feet parallel."],["setup","2. Setup","Arms hang. Keep the shoulders-arms triangle."],["pend","3. Pendulum","Shoulders rock. Wrists quiet. Head still."],["face","4. Square face","Face square to the line at impact."],["len","5. Stroke length","Back = through. Longer stroke, longer putt. Same tempo."]];
+const techPics = () => `<p class="ok" style="margin:0 0 8px">Do this to raise your odds of a solid, straight roll.</p><div class="tech">${TECH.map(([k, t, c]) => `<figure>${PT[k]}<figcaption><b>${t}.</b> ${c}</figcaption></figure>`).join("")}</div>`;
+const PUTT_TIP = "Putt: face to the line, eyes over the ball, rock the shoulders, back = through.";
+
+/* Step-by-step sequences: eye view, rails, takeaway, impact, follow-through. */
+function eyeView(chip) {
+  const head = chip ? `<path d="M100 66 L112 50 L126 54 L118 74Z" fill="#9ca3af" stroke="#374151" stroke-width="2"/>` : `<rect x="104" y="48" width="9" height="30" rx="2" fill="#374151"/>`;
+  const shaft = chip ? L([110,58],[150,4],4,"#1f2937") + `<circle cx="150" cy="6" r="7" fill="#fcd34d" stroke="#92400e"/>` : L([108,58],[110,4],4,"#1f2937") + `<circle cx="110" cy="6" r="7" fill="#fcd34d" stroke="#92400e"/>`;
+  return S("0 0 240 120", `<rect width="240" height="120" rx="10" fill="#4ade80"/><line x1="10" y1="63" x2="232" y2="63" stroke="#fff" stroke-width="2.5" stroke-dasharray="7 5"/><text x="230" y="80" font-size="11" text-anchor="end" font-weight="700">target →</text>${head}${shaft}<circle cx="${chip ? 124 : 122}" cy="63" r="8" fill="#fff" stroke="#0b0f0c" stroke-width="2"/><ellipse cx="${chip ? 96 : 92}" cy="106" rx="16" ry="9" fill="#374151"/><ellipse cx="${chip ? 136 : 140}" cy="106" rx="16" ry="9" fill="#374151"/><text x="232" y="18" font-size="11" text-anchor="end" font-weight="700">your view, looking down</text><text x="232" y="32" font-size="11" text-anchor="end">${chip ? "hands ahead of ball" : "face square to the line"}</text>`, "Eye view");
+}
+function rails(o) {
+  o = o || {};
+  const bx = o.ball, lf = o.wide ? 74 : 92, rf = o.wide ? 166 : 148;
+  return S("0 0 240 130", `<rect width="240" height="130" rx="10" fill="#4ade80"/><line x1="8" y1="30" x2="232" y2="30" stroke="#f97316" stroke-width="4"/><line x1="8" y1="100" x2="232" y2="100" stroke="#fde047" stroke-width="4"/><text x="230" y="22" font-size="11" text-anchor="end" font-weight="700">target line →</text>
+   <line x1="${lf - 6}" y1="64" x2="${rf + 6}" y2="64" stroke="#1d4ed8" stroke-width="3"/><text x="${rf + 10}" y="68" font-size="10" fill="#1d4ed8">shoulders</text><line x1="${lf + 4}" y1="78" x2="${rf - 4}" y2="78" stroke="#7c3aed" stroke-width="3"/><text x="${rf + 10}" y="82" font-size="10" fill="#7c3aed">hips</text>
+   <ellipse cx="${lf}" cy="100" rx="9" ry="15" fill="#374151"/><ellipse cx="${rf}" cy="100" rx="9" ry="15" fill="#374151"/><text x="8" y="124" font-size="10">feet</text>
+   <line x1="120" y1="36" x2="120" y2="52" stroke="#0b0f0c" stroke-width="1" stroke-dasharray="2 2"/><circle cx="${bx}" cy="40" r="6" fill="#fff" stroke="#0b0f0c" stroke-width="2"/>${o.label ? `<text x="${bx}" y="56" font-size="10" text-anchor="middle" font-weight="700">${o.label}</text>` : ""}${o.weight ? `<text x="8" y="50" font-size="10" font-weight="700">weight →</text><text x="8" y="62" font-size="10">lead side</text>` : ""}`, "Setup from above: feet, hips, shoulders parallel");
+}
+const SEQ = {
+  putt: [
+    [() => eyeView(false), "a. Look down", "Eyes right over the ball.", "Face square to the line."],
+    [() => rails({ ball: 128, label: "a bit forward" }), "b. Line up", "Feet, hips, shoulders on the rails.", "Face first, then feet."],
+    [() => figure("puttBack"), "c. Takeaway", "Shoulders rock back.", "Wrists quiet."],
+    [() => figure("putt"), "d. Impact", "Head still.", "Face square."],
+    [() => figure("puttThru"), "e. Follow-through", "Through as far as back.", "Listen for it drop."]
+  ],
+  chip: [
+    [() => eyeView(true), "a. Look down", "Hands ahead of the ball.", "Shaft leans to the target."],
+    [() => rails({ ball: 112, label: "back of center", weight: 1 }), "b. Line up", "Narrow stance, weight lead side.", "Ball back of center."],
+    [() => figure("chipBack"), "c. Takeaway", "Rock the shoulders, like a putt.", "Wrists quiet."],
+    [() => figure("chip"), "d. Impact", "Hands still ahead.", "Ball, then grass."],
+    [() => figure("chipThru"), "e. Follow-through", "Short, low finish.", "Land it, let it roll."]
+  ]
+};
+const seqPics = k => () => `<p class="ok" style="margin:0 0 8px">Do this to raise your odds of a straight, solid hit.</p><div class="tech">${SEQ[k].map(([pic, t, feel, think]) => `<figure>${(h => h.includes("0 0 100 116") ? `<div class="sm">${h}</div>` : h)(pic())}<figcaption><b>${t}</b><br>Feel: ${esc(feel)}<br>Think: ${esc(think)}</figcaption></figure>`).join("")}</div>`;
+/* Driver / fairway wood / iron setup comparison: front, down-the-line, eye view. */
+const SET3 = [
+  { k: "DR", t: "Driver", w: 26, ball: 20, tilt: 12, bend: 30, dist: 40, hands: 0, tee: 1, cues: ["Feet wider than shoulders.", "Ball inside the lead heel, tee high.", "Tilt away from the target; hands even with the ball."] },
+  { k: "FW", t: "Fairway wood", w: 22, ball: 12, tilt: 7, bend: 34, dist: 34, hands: 1, tee: 0, cues: ["Feet shoulder width.", "Ball a few inches inside the lead heel.", "Hands even or a touch ahead. Sweep it."] },
+  { k: "IR", t: "Iron", w: 18, ball: 0, tilt: 3, bend: 40, dist: 26, hands: 4, tee: 0, cues: ["Feet just under shoulder width.", "Ball in the middle.", "Hands a little ahead; more bend, closer to the ball."] }
+];
+function frontView(o) {
+  const g = 106, fl = 50 - o.w, fr = 50 + o.w, hip = [50 - o.tilt * 0.2, 64], nk = [50 - o.tilt * 0.7, 32], hd = [50 + o.hands * 0.8 + o.ball * 0.3, 80], bx = 50 + o.ball;
+  return S("0 0 100 120", `<rect width="100" height="120" fill="#dcfce7" rx="8"/><rect y="${g}" width="100" height="14" fill="#86efac"/>` +
+    L(hip, nk, 5) + L([nk[0] - 11, nk[1] + 3 + o.tilt * .3], [nk[0] + 11, nk[1] + 3 - o.tilt * .3], 4) + L([hip[0] - 6, hip[1]], [fl, g], 4) + L([hip[0] + 6, hip[1]], [fr, g], 4) +
+    L([nk[0] - 11, nk[1] + 3 + o.tilt * .3], hd, 3, "#1f2937") + L([nk[0] + 11, nk[1] + 3 - o.tilt * .3], hd, 3, "#1f2937") + L(hd, [bx - 2, g - 2 - (o.tee ? 5 : 0)], 2.2, "#6b7280") +
+    (o.tee ? `<line x1="${bx}" y1="${g}" x2="${bx}" y2="${g - 6}" stroke="#b45309" stroke-width="2"/>` : "") + `<circle cx="${bx}" cy="${g - 3 - (o.tee ? 6 : 0)}" r="3" fill="#fff" stroke="#0b0f0c" stroke-width="1.3"/>` +
+    `<circle cx="${nk[0] - o.tilt * .25}" cy="${nk[1] - 11}" r="8" fill="#fff" stroke="#0b0f0c" stroke-width="2.5"/><text x="96" y="12" font-size="8" text-anchor="end">target →</text>`, o.t + " front view");
+}
+function dtlView(o) {
+  const g = 106, a = o.bend * Math.PI / 180, hip = [34, 62], nk = [hip[0] + 34 * Math.sin(a), hip[1] - 34 * Math.cos(a)], knee = [42, 84], hand = [nk[0] + 2, nk[1] + 32], bx = 34 + o.dist + 16;
+  return S("0 0 100 120", `<rect width="100" height="120" fill="#dcfce7" rx="8"/><rect y="${g}" width="100" height="14" fill="#86efac"/>` +
+    L(hip, nk, 5) + L(hip, knee, 4) + L(knee, [36, g], 4) + L(nk, hand, 3, "#1f2937") + L(hand, [bx - 4, g - 2 - (o.tee ? 5 : 0)], 2.2, "#6b7280") +
+    `<circle cx="${nk[0] + 6}" cy="${nk[1] - 6}" r="8" fill="#fff" stroke="#0b0f0c" stroke-width="2.5"/>` + (o.tee ? `<line x1="${bx}" y1="${g}" x2="${bx}" y2="${g - 6}" stroke="#b45309" stroke-width="2"/>` : "") +
+    `<circle cx="${bx}" cy="${g - 3 - (o.tee ? 6 : 0)}" r="3" fill="#fff" stroke="#0b0f0c" stroke-width="1.3"/><line x1="36" y1="${g + 6}" x2="${bx}" y2="${g + 6}" stroke="#14532d" stroke-width="1.2"/><text x="${(36 + bx) / 2}" y="${g + 13}" font-size="7" text-anchor="middle">${o.dist > 36 ? "farther" : o.dist > 30 ? "medium" : "closer"}</text>`, o.t + " down the line");
+}
+function eyeDown(o) {
+  const bx = 50 + o.ball * 1.2;
+  return S("0 0 100 90", `<rect width="100" height="90" fill="#4ade80" rx="8"/><line x1="4" y1="40" x2="96" y2="40" stroke="#fff" stroke-width="1.5" stroke-dasharray="4 3"/><ellipse cx="${50 - o.w * 1.1}" cy="74" rx="7" ry="11" fill="#374151"/><ellipse cx="${50 + o.w * 1.1}" cy="74" rx="7" ry="11" fill="#374151"/><line x1="50" y1="34" x2="50" y2="46" stroke="#0b0f0c" stroke-width=".8" stroke-dasharray="2 2"/>` +
+    `<rect x="${bx - 12}" y="${o.k === "IR" ? 34 : 31}" width="${o.k === "IR" ? 8 : 10}" height="${o.k === "IR" ? 12 : 18}" rx="${o.k === "IR" ? 1 : 4}" fill="#374151"/><circle cx="${bx}" cy="40" r="4" fill="#fff" stroke="#0b0f0c" stroke-width="1.3"/><text x="50" y="14" font-size="8" text-anchor="middle">${o.k === "DR" ? "ball at lead heel" : o.k === "FW" ? "ball inside heel" : "ball in the middle"}</text>`, o.t + " eye view");
+}
+const diPics = () => `<p class="ok" style="margin:0 0 8px">Do this to raise your odds of a straight, solid hit.</p><div class="cmp">${SET3.map(o => `<h4>${o.t}</h4>`).join("")}</div>
+ <div class="cmprow">Front view</div><div class="cmp">${SET3.map(frontView).join("")}</div>
+ <div class="cmprow">Down the line</div><div class="cmp">${SET3.map(dtlView).join("")}</div>
+ <div class="cmprow">Your eyes, looking down</div><div class="cmp">${SET3.map(eyeDown).join("")}</div>
+ <div class="cmprow">Key cues</div><div class="cmp">${SET3.map(o => `<div>${o.cues.map(c => `<p>• ${esc(c)}</p>`).join("")}</div>`).join("")}</div>
+ <div class="tech" style="margin-top:10px"><figure>${rails({ ball: 154, label: "inside lead heel", wide: 1 })}<figcaption><b>Driver from above.</b> Feet, hips, shoulders parallel to the line.</figcaption></figure><figure>${rails({ ball: 120, label: "middle" })}<figcaption><b>Iron from above.</b> Same rails. Ball in the middle.</figcaption></figure></div>`;
+
 const PATH = [
   { id: "putt", title: "1. Putting school", drills: [
+    { id: "p-seq", title: "Putting step by step", pic: seqPics("putt"), steps: ["Go through a to e slowly.", "Then 10 putts from 6 feet."], reps: "10 putts from 6 feet, count makes", watch: "putting stroke step by step" },
+    { id: "p-tech", title: "Putting technique (5 pictures)", pic: techPics, steps: ["Do the 5 pictures in order, slowly.", "Then 10 putts from 6 feet."], reps: "10 putts from 6 feet, count makes", watch: "putting fundamentals setup pendulum stroke" },
     { id: "p-line", title: "Lining up", pic: () => linePic, steps: ["Stand behind the ball and pick a spot a foot ahead on your line.", "Turn the ball so the logo (or a drawn line) points at the spot.", "Set the putter face square to that line, eyes right over the ball.", "Putt over the spot, not at the hole."], reps: "10 putts from 6 feet", watch: "how to line up a putt" },
-    { id: "p-gate", title: "Straight stroke: coin gate", pic: () => gatePic, steps: ["Push two tees in, just wider than your putter head.", "Put a coin a foot ahead of the ball.", "Stroke through the gate without touching a tee; roll over the coin.", "Rock the shoulders. Hands just come along."], reps: "10 strokes, count clean ones", watch: "putting gate drill straight stroke" },
+    { id: "p-gate", title: "At home: tee or coin gate", pic: () => gatePic, steps: ["On the carpet: two tees (or coins) just wider than the putter head.", "Coin a foot ahead of the ball.", "Stroke through the gate, touch nothing, roll over the coin.", "Shoulders rock, wrists quiet."], reps: "10 strokes, count clean ones", watch: "putting gate drill straight stroke" },
     { id: "p-ladder", title: "Distance ladder", pic: () => ladderPic, steps: ["Put lines (tees or string) at 10, 20 and 30 feet.", "Putt 3 balls to each line, trying to stop just past it.", "Same tempo; make the stroke longer for longer putts, not faster.", "Good = within a putter length."], reps: "9 balls (3 per line), count good ones out of 10 tries", watch: "lag putting distance control drill" },
     { id: "p-three", title: "3-footer circle", pic: () => circlePic, steps: ["Put balls in a circle 3 feet from the hole.", "Same routine every ball.", "Firm enough to hit the back of the cup.", "Finish on a made one."], reps: "10 balls, count makes", watch: "3 foot putting circle drill" }
   ] },
   { id: "chip", title: "2. Chipping school", drills: [
+    { id: "c-seq", title: "Chipping step by step", pic: seqPics("chip"), steps: ["Ball back of center, weight lead side.", "Hands ahead, quiet wrists.", "Putting-style stroke."], reps: "10 chips, count solid ones", watch: "basic chipping technique step by step" },
     { id: "c-one", title: "One motion", pic: () => figure("chip"), steps: ["Narrow stance, ball back, weight on the front foot.", "Hands a little ahead of the ball.", "Putting-style stroke: shoulders rock, wrists quiet.", "Same motion every chip. The club changes the distance."], reps: "10 chips, count solid ones", watch: "simple chipping motion beginners" },
     { id: "c-club", title: "Club by distance", pic: () => chipClubsPic, steps: ["Long roll (lots of green): 7-iron.", "Medium: pitching wedge.", "Short (little green, or a bump): 52° or sand wedge.", "Same small motion with all three. Pick a landing spot just on the green."], reps: "3 balls with each club, count ones inside 6 feet", watch: "chipping club selection 7 iron PW sand wedge" },
     { id: "c-land", title: "Landing drill (wiffle balls / laundry basket)", pic: () => basketPic, steps: ["At home: wiffle or foam balls, a laundry basket or towel 10-20 yd away.", "Land it in or on the target. Don't worry about roll.", "Move it to 30 yd once you get half.", "Same motion as One motion, a bit longer."], reps: "10 balls, count landed", watch: "backyard chipping practice wiffle balls" }
   ] },
   { id: "swing", title: "3. Setup & swing", drills: [
+    { id: "s-di", title: "Driver, wood & iron setup", pic: diPics, steps: ["Clubs on the ground: one on the target line, one at your toes.", "Feet, hips, shoulders parallel to them.", "Driver: wide, ball inside lead heel, tilt away. Iron: ball middle, hands ahead."], reps: "5 setups each, check from behind", watch: "driver vs iron setup ball position alignment" },
     { id: "s-align", title: "Alignment: railroad tracks", pic: () => railPic, steps: ["Lay one club along the ball line, pointing at the target.", "Lay a second club along your toes, parallel.", "Feet, knees, hips and shoulders follow the toe line.", "Do this on every range session."], reps: "10 balls, count ones on line", watch: "golf alignment sticks railroad tracks" },
     { id: "s-ball", title: "Ball position per club", pic: () => ballPosPic, steps: ["Wedges: middle.", "7-iron: a ball forward of middle.", "Hybrid / wood: a few inches inside the front heel.", "Driver: off the front heel."], reps: "5 balls per club, count solid", watch: "golf ball position for each club" },
     { id: "s-grip", title: "Grip & posture", pic: () => gripPic + figure("setup"), steps: ["Lead hand: see two knuckles.", "Trail hand on the side, not on top. Pressure: firm handshake.", "Bend from the hips, soft knees, arms hang straight down.", "Back straight, chin up a touch."], reps: "Check in a mirror 5 times", watch: "golf grip and posture basics" },
@@ -649,7 +743,7 @@ function ydBlock() {
 }
 function todayBanner() { const r = ratioToday(); if (r === 1) return ""; return `<p class="ok">Today: ${r < 1 ? "playing short, numbers adjusted down" : "playing long, numbers adjusted up"} (${Math.round((r - 1) * 100)}%).</p>`; }
 function vCaddie() {
-  return topBar("Caddie") + hero("caddie", "On the course") + vFix() + `<p class="mut" style="text-align:center;margin:0">Yards to the middle of the green</p>${ydBlock()}${todayBanner()}
+  return topBar("Caddie") + hero("caddie", "On the course") + vFix() + `<div class="remind">⛳ ${esc(PUTT_TIP)}</div><p class="mut" style="text-align:center;margin:0">Yards to the middle of the green</p>${ydBlock()}${todayBanner()}
   <div class="tiles">${TILES.map(t => `<button data-a="tile" data-t="${t.id}">${tileSvg(t.id)}<span>${esc(t.label)}</span></button>`).join("")}</div>
   <div class="row" style="margin-top:12px"><button class="grow" data-a="go" data-r="rules">📋 Rules</button><button class="grow" data-a="go" data-r="routine">Routine</button></div>
   ${vTodayCheck()}${vCard()}`;
